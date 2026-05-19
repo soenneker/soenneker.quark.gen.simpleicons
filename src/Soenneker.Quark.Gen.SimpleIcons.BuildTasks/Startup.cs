@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Soenneker.Quark.Gen.SimpleIcons.BuildTasks.Abstract;
 
 namespace Soenneker.Quark.Gen.SimpleIcons.BuildTasks;
 

@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Soenneker.Quark.Gen.SimpleIcons.BuildTasks.Abstract;
 
 namespace Soenneker.Quark.Gen.SimpleIcons.BuildTasks;
 

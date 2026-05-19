@@ -37,6 +37,9 @@
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageIcon>icon.png</PackageIcon>
         <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+        <_SimpleIconsBuildTasksProjectPath>$([System.IO.Path]::GetFullPath($([System.IO.Path]::Combine('$(MSBuildProjectDirectory)', '..', 'Soenneker.Quark.Gen.SimpleIcons.BuildTasks', 'Soenneker.Quark.Gen.SimpleIcons.BuildTasks.csproj'))))</_SimpleIconsBuildTasksProjectPath>
+        <_SimpleIconsBuildTasksOutputDir>$([System.IO.Path]::GetFullPath($([System.IO.Path]::Combine('$(MSBuildProjectDirectory)', '..', 'Soenneker.Quark.Gen.SimpleIcons.BuildTasks', 'bin', '$(Configuration)'))))</_SimpleIconsBuildTasksOutputDir>
+        <_SimpleIconsBuildTasksDllPath>$([System.IO.Path]::Combine('$(_SimpleIconsBuildTasksOutputDir)', 'Soenneker.Quark.Gen.SimpleIcons.BuildTasks.dll'))</_SimpleIconsBuildTasksDllPath>
     </PropertyGroup>
 
     <ItemGroup>
@@ -46,10 +49,9 @@
     </ItemGroup>
 
     <ItemGroup>
-        <None Include="Soenneker.Quark.Gen.SimpleIcons.targets" Pack="true" PackagePath="build\" />
-        <None Include="Soenneker.Quark.Gen.SimpleIcons.targets" Pack="true" PackagePath="buildTransitive\" />
-
-        <None Include="..\Soenneker.Quark.Gen.SimpleIcons.BuildTasks\bin\$(Configuration)\**\*.*" Pack="true" PackagePath="buildTransitive\%(RecursiveDir)" />
+        <None Include="Soenneker.Quark.Gen.SimpleIcons.targets" Pack="true" PackagePath="build/" />
+        <None Include="Soenneker.Quark.Gen.SimpleIcons.targets" Pack="true" PackagePath="buildTransitive/" />
+        <None Include="$([MSBuild]::EnsureTrailingSlash('$(_SimpleIconsBuildTasksOutputDir)'))**/*.*" Pack="true" PackagePath="buildTransitive/%(RecursiveDir)" />
     </ItemGroup>
 
     <ItemGroup>
@@ -58,13 +60,16 @@
     </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\..\..\soenneker.quark.gen.simpleicons.abstractions\src\Soenneker.Quark.Gen.SimpleIcons.Abstractions\Soenneker.Quark.Gen.SimpleIcons.Abstractions.csproj" />
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.3.0" PrivateAssets="all" />
     </ItemGroup>
 
+    <Target Name="BuildBuildTasksToolOnBuild" BeforeTargets="Build" Condition="!Exists('$(_SimpleIconsBuildTasksDllPath)')">
+        <MSBuild Projects="$(_SimpleIconsBuildTasksProjectPath)" Targets="Build" Properties="Configuration=$(Configuration)" BuildInParallel="true" />
+    </Target>
+
     <Target Name="BuildBuildTasksTool" BeforeTargets="Pack" Condition="'$(IsPackable)' == 'true'">
-
-        <MSBuild Projects="..\Soenneker.Quark.Gen.SimpleIcons.BuildTasks\Soenneker.Quark.Gen.SimpleIcons.BuildTasks.csproj" Targets="Build" Properties="Configuration=$(Configuration);NoBuild=false" BuildInParallel="true" />
-
-        <Error Condition="!Exists('..\Soenneker.Quark.Gen.SimpleIcons.BuildTasks\bin\$(Configuration)\Soenneker.Quark.Gen.SimpleIcons.BuildTasks.dll')" Text="BuildTasks output missing. Aborting pack to avoid publishing a broken package." />
+        <MSBuild Projects="$(_SimpleIconsBuildTasksProjectPath)" Targets="Build" Properties="Configuration=$(Configuration);NoBuild=false" BuildInParallel="true" />
+        <Error Condition="!Exists('$(_SimpleIconsBuildTasksDllPath)')" Text="BuildTasks output missing. Aborting pack to avoid publishing a broken package." />
     </Target>
 </Project>
