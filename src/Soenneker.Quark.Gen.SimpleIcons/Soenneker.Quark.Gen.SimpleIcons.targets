@@ -20,7 +20,7 @@
             <_SimpleIconsVersion>@(_SimpleIconsPkgRef->'%(Version)')</_SimpleIconsVersion>
             <_SimpleIconsPackagesRoot Condition="'$(RestorePackagesPath)' != ''">$(RestorePackagesPath)</_SimpleIconsPackagesRoot>
             <_SimpleIconsPackagesRoot Condition="'$(_SimpleIconsPackagesRoot)' == '' and '$(NuGetPackageRoot)' != ''">$(NuGetPackageRoot)</_SimpleIconsPackagesRoot>
-            <_SimpleIconsPackageResources Condition="'$(_SimpleIconsPackagesRoot)' != '' and '$(_SimpleIconsVersion)' != ''">$([System.IO.Path]::Combine('$(_SimpleIconsPackagesRoot)', 'soenneker.simpleicons.icons', '$(_SimpleIconsVersion)', 'contentFiles', 'any', 'any', 'Resources'))</_SimpleIconsPackageResources>
+            <_SimpleIconsPackageResources Condition="'$(_SimpleIconsPackagesRoot)' != '' and '$(_SimpleIconsVersion)' != ''">$([System.IO.Path]::Combine('$(_SimpleIconsPackagesRoot)', 'soenneker.simpleicons.icons', '$(_SimpleIconsVersion)', 'contentFiles', 'any', 'any', 'Resources', 'SimpleIcons'))</_SimpleIconsPackageResources>
             <_SimpleIconsResourcesOutputDir>$([System.IO.Path]::Combine('$(IntermediateOutputPath)', 'SimpleIconsResources'))</_SimpleIconsResourcesOutputDir>
             <_SimpleIconsPackageResourcesGlob>$(_SimpleIconsPackageResources)/*.svg</_SimpleIconsPackageResourcesGlob>
         </PropertyGroup>
