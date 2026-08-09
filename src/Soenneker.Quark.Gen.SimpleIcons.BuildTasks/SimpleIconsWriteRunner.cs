@@ -109,13 +109,8 @@ public sealed class SimpleIconsWriteRunner : Abstract.ISimpleIconsWriteRunner
         if (!Directory.Exists(rootDir))
             return;
 
-        foreach (string file in Directory.EnumerateFiles(rootDir, "*" + extension, SearchOption.AllDirectories))
-        {
-            if (IsExcludedProjectPath(file))
-                continue;
-
+        foreach (string file in ProjectFileEnumerator.EnumerateByExtension(rootDir, extension))
             entries.Add(BuildMetadataEntry(rootDir, file, extension));
-        }
     }
 
     private static bool HasSvgResources(string resourcesDir)
@@ -131,20 +126,11 @@ public sealed class SimpleIconsWriteRunner : Abstract.ISimpleIconsWriteRunner
         return string.Create(CultureInfo.InvariantCulture, $"{category}|{relativePath}|{info.Length}|{info.LastWriteTimeUtc.Ticks}");
     }
 
-    private static bool IsExcludedProjectPath(string path)
-    {
-        return path.Contains("\\obj\\", StringComparison.OrdinalIgnoreCase) ||
-               path.Contains("/obj/", StringComparison.OrdinalIgnoreCase) ||
-               path.Contains("\\bin\\", StringComparison.OrdinalIgnoreCase) ||
-               path.Contains("/bin/", StringComparison.OrdinalIgnoreCase);
-    }
-
     private static async Task<HashSet<string>> CollectIconsFromProject(string projectDir, CancellationToken ct)
     {
         var icons = new HashSet<string>(StringComparer.Ordinal);
-        IEnumerable<string> files = Directory.EnumerateFiles(projectDir, "*.cs", SearchOption.AllDirectories)
-            .Concat(Directory.EnumerateFiles(projectDir, "*.razor", SearchOption.AllDirectories))
-            .Where(p => !IsExcludedProjectPath(p));
+        IEnumerable<string> files = ProjectFileEnumerator.EnumerateByExtension(projectDir, ".cs", ct)
+            .Concat(ProjectFileEnumerator.EnumerateByExtension(projectDir, ".razor", ct));
 
         foreach (string file in files)
         {
