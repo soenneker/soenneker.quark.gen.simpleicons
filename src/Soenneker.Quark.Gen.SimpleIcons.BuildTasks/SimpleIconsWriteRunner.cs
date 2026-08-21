@@ -52,11 +52,6 @@ public sealed class SimpleIconsWriteRunner : Abstract.ISimpleIconsWriteRunner
             ? Path.GetFullPath(resPath.Trim().Trim('"'))
             : Path.Combine(projectDir, "Resources");
 
-        HashSet<string> icons = await CollectIconsFromProject(projectDir, cancellationToken);
-
-        if (icons.Count > 0 && !HasSvgResources(resourcesDir))
-            return Fail($"Simple Icons resources directory contains no SVG files: {resourcesDir}. Check the Soenneker.SimpleIcons.Icons package contentFiles path.");
-
         string outputRoot = Path.GetDirectoryName(outputPath) ?? Directory.GetCurrentDirectory();
         string providerPath = Path.Combine(outputRoot, "SimpleIconSvgProvider.g.cs");
         string extensionsPath = Path.Combine(outputRoot, "SimpleIconServiceCollectionExtensions.g.cs");
@@ -65,6 +60,11 @@ public sealed class SimpleIconsWriteRunner : Abstract.ISimpleIconsWriteRunner
 
         if (CanSkipGeneration(inputHash, hashPath, outputPath, providerPath, extensionsPath))
             return 0;
+
+        HashSet<string> icons = await CollectIconsFromProject(projectDir, cancellationToken);
+
+        if (icons.Count > 0 && !HasSvgResources(resourcesDir))
+            return Fail($"Simple Icons resources directory contains no SVG files: {resourcesDir}. Check the Soenneker.SimpleIcons.Icons package contentFiles path.");
 
         Directory.CreateDirectory(outputRoot);
 

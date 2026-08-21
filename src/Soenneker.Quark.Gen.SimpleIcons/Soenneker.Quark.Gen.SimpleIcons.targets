@@ -12,6 +12,11 @@
         <_SimpleIconsProjectDir Condition="'$(_SimpleIconsProjectDir)' == ''">$(MSBuildProjectDirectory)</_SimpleIconsProjectDir>
     </PropertyGroup>
 
+    <ItemGroup>
+        <_SimpleIconsGeneratorInputs Include="$(_SimpleIconsProjectDir)\**\*.cs;$(_SimpleIconsProjectDir)\**\*.razor"
+                                     Exclude="$(_SimpleIconsProjectDir)\bin\**;$(_SimpleIconsProjectDir)\obj\**;$(_SimpleIconsProjectDir)\node_modules\**" />
+    </ItemGroup>
+
     <Target Name="CopySimpleIconsToBuildResources" BeforeTargets="ResolveSimpleIconsBuildTasksPath" Condition="'$(DesignTimeBuild)'!='true'">
         <ItemGroup>
             <_SimpleIconsPkgRef Include="@(PackageReference)" Condition="'%(Identity)' == 'Soenneker.SimpleIcons.Icons'" />
@@ -56,6 +61,8 @@
 
     <Target Name="RunSimpleIconsGeneratorBuildTasks"
             BeforeTargets="XamlPreCompile;BeforeCompile;CoreCompile"
+            Inputs="@(_SimpleIconsGeneratorInputs);$(MSBuildProjectFullPath);$(ProjectAssetsFile);$(SimpleIconsBuildTasksDllPath)"
+            Outputs="$(SimpleIconsSvgMapOutput);$(SimpleIconsSvgProviderOutput);$(SimpleIconsServiceCollectionExtensionsOutput)"
             Condition="'$(DesignTimeBuild)'!='true' and '$(IsCrossTargetingBuild)'!='true' and '$(SimpleIconsGeneratorBuildEnabled)'=='true'">
 
         <Message Importance="high" Text="Running Soenneker.Quark.Gen.SimpleIcons BuildTasks: projectDir=$(_SimpleIconsProjectDir)" />
