@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace Soenneker.Quark.Gen.SimpleIcons.BuildTasks;
 
-///<inheritdoc cref="Abstract.ISimpleIconsWriteRunner"/>
+/// <inheritdoc cref="Abstract.ISimpleIconsWriteRunner"/>
 public sealed class SimpleIconsWriteRunner : Abstract.ISimpleIconsWriteRunner
 {
     private static readonly Regex _csIconPattern = new(
