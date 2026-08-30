@@ -11,7 +11,6 @@ using System.Threading.Tasks;
 
 namespace Soenneker.Quark.Gen.SimpleIcons.BuildTasks;
 
-/// <inheritdoc cref="Abstract.ISimpleIconsWriteRunner"/>
 public sealed class SimpleIconsWriteRunner : Abstract.ISimpleIconsWriteRunner
 {
     private static readonly Regex _csIconPattern = new(
@@ -249,7 +248,6 @@ public sealed class SimpleIconsWriteRunner : Abstract.ISimpleIconsWriteRunner
         sb.AppendLine("/// </summary>");
         sb.AppendLine("internal sealed class SimpleIconSvgProvider : ISimpleIconsSvgProvider");
         sb.AppendLine("{");
-        sb.AppendLine("    /// <inheritdoc />");
         sb.AppendLine("    public string? GetSvg(string iconName) => SimpleIconSvgMap.GetSvg(iconName);");
         sb.AppendLine("}");
         return sb.ToString();

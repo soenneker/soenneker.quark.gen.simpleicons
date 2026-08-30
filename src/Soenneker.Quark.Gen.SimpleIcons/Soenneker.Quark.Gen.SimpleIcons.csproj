@@ -60,7 +60,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\..\soenneker.quark.gen.simpleicons.abstractions\src\Soenneker.Quark.Gen.SimpleIcons.Abstractions\Soenneker.Quark.Gen.SimpleIcons.Abstractions.csproj" />
+        <PackageReference Include="Soenneker.Quark.Gen.SimpleIcons.Abstractions" Version="4.0.12" />
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" PrivateAssets="all" />
     </ItemGroup>
 

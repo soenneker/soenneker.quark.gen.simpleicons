@@ -3,15 +3,15 @@ using Microsoft.CodeAnalysis;
 namespace Soenneker.Quark.Gen.SimpleIcons;
 
 /// <summary>
-/// Represents the simple icons generator.
+/// Provides the analyzer entry point for the Simple Icons build-time generator package.
 /// </summary>
 [Generator]
 public sealed class SimpleIconsGenerator : IIncrementalGenerator
 {
     /// <summary>
-    /// Initializes the Simple Icons Generator so it is ready for use.
+    /// Initializes the analyzer entry point. Simple Icons source generation is performed by the package's MSBuild task.
     /// </summary>
-    /// <param name="context">HTTP context containing the Authorization header.</param>
+    /// <param name="context">The incremental generator initialization context.</param>
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
     }

@@ -4,15 +4,15 @@ using System.Threading.Tasks;
 namespace Soenneker.Quark.Gen.SimpleIcons.BuildTasks.Abstract;
 
 /// <summary>
-/// Defines the simple icons write runner contract.
+/// Generates the Simple Icons SVG map and dependency-injection support for a consuming project.
 /// </summary>
 public interface ISimpleIconsWriteRunner
 {
     /// <summary>
-    /// Runs simple Icons Write Runner for the Simple Icons Write Runner.
+    /// Generates outputs using the supplied build-task arguments.
     /// </summary>
     /// <param name="args">Command-line arguments passed to the application.</param>
     /// <param name="cancellationToken">Token used to cancel the operation.</param>
-    /// <returns>A task whose result is the requested value.</returns>
+    /// <returns>The process exit code: zero on success; otherwise nonzero.</returns>
     ValueTask<int> Run(string[] args, CancellationToken cancellationToken);
 }

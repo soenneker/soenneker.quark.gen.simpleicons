@@ -1,47 +1,60 @@
 [![](https://img.shields.io/nuget/v/soenneker.quark.gen.simpleicons.svg?style=for-the-badge)](https://www.nuget.org/packages/soenneker.quark.gen.simpleicons/)
 [![](https://img.shields.io/github/actions/workflow/status/soenneker/soenneker.quark.gen.simpleicons/publish-package.yml?style=for-the-badge)](https://github.com/soenneker/soenneker.quark.gen.simpleicons/actions/workflows/publish-package.yml)
+[![](https://img.shields.io/github/actions/workflow/status/soenneker/soenneker.quark.gen.simpleicons/build-and-test.yml?label=Build&style=for-the-badge)](https://github.com/soenneker/soenneker.quark.gen.simpleicons/actions/workflows/build-and-test.yml)
 [![](https://img.shields.io/nuget/dt/soenneker.quark.gen.simpleicons.svg?style=for-the-badge)](https://www.nuget.org/packages/soenneker.quark.gen.simpleicons/)
+[![](https://img.shields.io/github/actions/workflow/status/soenneker/soenneker.quark.gen.simpleicons/codeql.yml?label=CodeQL&style=for-the-badge)](https://github.com/soenneker/soenneker.quark.gen.simpleicons/actions/workflows/codeql.yml)
 
 # Soenneker.Quark.Gen.SimpleIcons
 
-Defines the simple icons write runner contract.
+Build-time generation of a trimmed Simple Icons SVG provider for Quark and Razor projects.
 
 ## Install
 
 ```bash
 dotnet add package Soenneker.Quark.Gen.SimpleIcons
+dotnet add package Soenneker.SimpleIcons.Enums.Icons
+dotnet add package Soenneker.SimpleIcons.Icons
 ```
 
-## Quick start
+The enum package supplies `SimpleIcon` values. The icons package supplies the SVG resources used during generation.
+
+## Usage
+
+Reference icons directly in C# or Razor so the build can discover them:
+
+```razor
+<SimpleIcon Name="Github" />
+<SimpleIcon Name="@SimpleIcon.OpenAi" />
+```
+
+Register the generated provider with dependency injection:
 
 ```csharp
-using Soenneker.Quark.Gen.SimpleIcons.BuildTasks.Abstract;
+using Soenneker.Quark.Gen.SimpleIcons.Generated;
 
-ISimpleIconsWriteRunner simpleIconsWriteRunner = /* resolve from DI */;
-var result = await simpleIconsWriteRunner.Run("value", default);
+services.AddSimpleIconsAsScoped();
 ```
 
-Runs simple Icons Write Runner for the Simple Icons Write Runner.
+At build time, the package finds `SimpleIcon.Name` references and literal `<SimpleIcon Name="Name" />` values in `.cs` and `.razor` files. It embeds only those SVGs in the consuming assembly.
 
-## What you get
+Icon names created only through reflection, concatenation, configuration, or other dynamic logic cannot be discovered. Add a direct `SimpleIcon.Name` reference for every icon that must be included.
 
-- `ISimpleIconsWriteRunner` — Defines the simple icons write runner contract.
-- `Startup` — Represents the startup.
-- `BuildTasksCommandLineArgs` — Represents the build tasks command line args.
-- `ConsoleHostedService` — Represents the console hosted service.
-- `Program` — Represents the program.
-- `SimpleIconsGenerator` — Represents the simple icons generator.
+## Build options
 
-## API at a glance
+Disable generation for a project:
 
-| API | What it does | Result / important behavior |
-| --- | --- | --- |
-| `BuildTasksCommandLineArgs.Args` | Gets args. | Gets args. |
-| `ConsoleHostedService.StartAsync(cancellationToken)` | Starts the Console Hosted Service and begins its background work. | A task that completes after the Console Hosted Service has started. |
-| `ConsoleHostedService.StopAsync(cancellationToken)` | Stops the Console Hosted Service and waits for its background work to finish. | A task that completes after the Console Hosted Service has stopped. |
-| `Program.Main(args)` | Runs the application using the supplied command-line arguments. | A task that completes when the application exits. |
-| `SimpleIconsGenerator.Initialize(context)` | Initializes the Simple Icons Generator so it is ready for use. | Returns no value; the requested change is complete when the method returns. |
+```xml
+<PropertyGroup>
+  <SimpleIconsGeneratorBuildEnabled>false</SimpleIconsGeneratorBuildEnabled>
+</PropertyGroup>
+```
 
-## Practical notes
+Override the generated map path when needed:
 
-- Cancellation stops pending work; it does not undo work that has already completed.
+```xml
+<PropertyGroup>
+  <SimpleIconsSvgMapOutput>$(IntermediateOutputPath)Generated\SimpleIconSvgMap.g.cs</SimpleIconsSvgMapOutput>
+</PropertyGroup>
+```
+
+The generated map and provider are implementation details. Consume them through `ISimpleIconsSvgProvider` or Quark’s `SimpleIcon` component.
