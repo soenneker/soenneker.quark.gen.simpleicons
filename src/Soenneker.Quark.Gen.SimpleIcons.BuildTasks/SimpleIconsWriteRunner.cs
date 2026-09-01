@@ -8,11 +8,16 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using Soenneker.Utils.Directory.Abstract;
+using Soenneker.Utils.File.Abstract;
 
 namespace Soenneker.Quark.Gen.SimpleIcons.BuildTasks;
 
 public sealed class SimpleIconsWriteRunner : Abstract.ISimpleIconsWriteRunner
 {
+    private readonly IDirectoryUtil _directoryUtil;
+    private readonly IFileUtil _fileUtil;
+
     private static readonly Regex _csIconPattern = new(
         @"SimpleIcon\.([A-Za-z0-9_]+)",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
@@ -31,6 +36,12 @@ public sealed class SimpleIconsWriteRunner : Abstract.ISimpleIconsWriteRunner
         "typeof", "uint", "ulong", "unchecked", "unsafe", "ushort", "using", "virtual", "void", "volatile", "while"
     };
 
+    public SimpleIconsWriteRunner(IDirectoryUtil directoryUtil, IFileUtil fileUtil)
+    {
+        _directoryUtil = directoryUtil;
+        _fileUtil = fileUtil;
+    }
+
     public async ValueTask<int> Run(string[] args, CancellationToken cancellationToken)
     {
         Dictionary<string, string> map = ParseArgs(args);
@@ -40,7 +51,7 @@ public sealed class SimpleIconsWriteRunner : Abstract.ISimpleIconsWriteRunner
 
         projectDir = Path.GetFullPath(projectDir.Trim().Trim('"'));
 
-        if (!Directory.Exists(projectDir))
+        if (!await _directoryUtil.Exists(projectDir, cancellationToken))
             return Fail($"Project directory does not exist: {projectDir}");
 
         string outputPath = map.TryGetValue("--output", out string? outVal) && !string.IsNullOrWhiteSpace(outVal)
@@ -51,37 +62,39 @@ public sealed class SimpleIconsWriteRunner : Abstract.ISimpleIconsWriteRunner
             ? Path.GetFullPath(resPath.Trim().Trim('"'))
             : Path.Combine(projectDir, "Resources");
 
-        string outputRoot = Path.GetDirectoryName(outputPath) ?? Directory.GetCurrentDirectory();
+        string outputRoot = Path.GetDirectoryName(outputPath) ?? _directoryUtil.GetWorkingDirectory();
         string providerPath = Path.Combine(outputRoot, "SimpleIconSvgProvider.g.cs");
         string extensionsPath = Path.Combine(outputRoot, "SimpleIconServiceCollectionExtensions.g.cs");
         string hashPath = Path.Combine(outputRoot, "simpleicons-generator.inputs.hash");
         string inputHash = ComputeInputHash(projectDir, resourcesDir);
 
-        if (CanSkipGeneration(inputHash, hashPath, outputPath, providerPath, extensionsPath))
+        if (await CanSkipGeneration(inputHash, hashPath, outputPath, providerPath, extensionsPath, cancellationToken))
             return 0;
 
         HashSet<string> icons = await CollectIconsFromProject(projectDir, cancellationToken);
 
-        if (icons.Count > 0 && !HasSvgResources(resourcesDir))
+        if (icons.Count > 0 && !await HasSvgResources(resourcesDir, cancellationToken))
             return Fail($"Simple Icons resources directory contains no SVG files: {resourcesDir}. Check the Soenneker.SimpleIcons.Icons package contentFiles path.");
 
-        Directory.CreateDirectory(outputRoot);
+        await _directoryUtil.Create(outputRoot, log: false, cancellationToken);
 
         string content = await GenerateSimpleIconSvgMap(icons, resourcesDir, cancellationToken);
-        await File.WriteAllTextAsync(outputPath, content, cancellationToken);
-        await File.WriteAllTextAsync(providerPath, GenerateSimpleIconSvgProvider(), cancellationToken);
-        await File.WriteAllTextAsync(extensionsPath, GenerateSimpleIconServiceCollectionExtensions(), cancellationToken);
-        await File.WriteAllTextAsync(hashPath, inputHash, cancellationToken);
+        await _fileUtil.WriteAtomically(outputPath, content, log: false, cancellationToken);
+        await _fileUtil.WriteAtomically(providerPath, GenerateSimpleIconSvgProvider(), log: false, cancellationToken);
+        await _fileUtil.WriteAtomically(extensionsPath, GenerateSimpleIconServiceCollectionExtensions(), log: false, cancellationToken);
+        await _fileUtil.WriteAtomically(hashPath, inputHash, log: false, cancellationToken);
 
         return 0;
     }
 
-    private static bool CanSkipGeneration(string inputHash, string hashPath, string outputPath, string providerPath, string extensionsPath)
+    private async ValueTask<bool> CanSkipGeneration(string inputHash, string hashPath, string outputPath, string providerPath, string extensionsPath,
+        CancellationToken cancellationToken)
     {
-        if (!File.Exists(outputPath) || !File.Exists(providerPath) || !File.Exists(extensionsPath) || !File.Exists(hashPath))
+        if (!await _fileUtil.Exists(outputPath, cancellationToken) || !await _fileUtil.Exists(providerPath, cancellationToken) ||
+            !await _fileUtil.Exists(extensionsPath, cancellationToken) || !await _fileUtil.Exists(hashPath, cancellationToken))
             return false;
 
-        string previousHash = File.ReadAllText(hashPath).Trim();
+        string previousHash = (await _fileUtil.Read(hashPath, log: false, cancellationToken)).Trim();
         return string.Equals(previousHash, inputHash, StringComparison.Ordinal);
     }
 
@@ -112,10 +125,10 @@ public sealed class SimpleIconsWriteRunner : Abstract.ISimpleIconsWriteRunner
             entries.Add(BuildMetadataEntry(rootDir, file, extension));
     }
 
-    private static bool HasSvgResources(string resourcesDir)
+    private async ValueTask<bool> HasSvgResources(string resourcesDir, CancellationToken cancellationToken)
     {
-        return Directory.Exists(resourcesDir) &&
-               Directory.EnumerateFiles(resourcesDir, "*.svg", SearchOption.TopDirectoryOnly).Any();
+        return await _directoryUtil.Exists(resourcesDir, cancellationToken) &&
+               (await _directoryUtil.GetFilesByExtension(resourcesDir, ".svg", cancellationToken: cancellationToken)).Count > 0;
     }
 
     private static string BuildMetadataEntry(string rootDir, string filePath, string category)
@@ -125,7 +138,7 @@ public sealed class SimpleIconsWriteRunner : Abstract.ISimpleIconsWriteRunner
         return string.Create(CultureInfo.InvariantCulture, $"{category}|{relativePath}|{info.Length}|{info.LastWriteTimeUtc.Ticks}");
     }
 
-    private static async Task<HashSet<string>> CollectIconsFromProject(string projectDir, CancellationToken ct)
+    private async Task<HashSet<string>> CollectIconsFromProject(string projectDir, CancellationToken ct)
     {
         var icons = new HashSet<string>(StringComparer.Ordinal);
         IEnumerable<string> files = ProjectFileEnumerator.EnumerateByExtension(projectDir, ".cs", ct)
@@ -135,7 +148,7 @@ public sealed class SimpleIconsWriteRunner : Abstract.ISimpleIconsWriteRunner
         {
             ct.ThrowIfCancellationRequested();
 
-            string content = await File.ReadAllTextAsync(file, ct);
+            string content = await _fileUtil.Read(file, log: false, ct);
 
             foreach (Match match in _csIconPattern.Matches(content))
             {
@@ -156,7 +169,7 @@ public sealed class SimpleIconsWriteRunner : Abstract.ISimpleIconsWriteRunner
         return icons;
     }
 
-    private static async Task<string> GenerateSimpleIconSvgMap(HashSet<string> iconNames, string resourcesDir, CancellationToken cancellationToken)
+    private async Task<string> GenerateSimpleIconSvgMap(HashSet<string> iconNames, string resourcesDir, CancellationToken cancellationToken)
     {
         var sb = new StringBuilder();
         sb.AppendLine("// <auto-generated/>");
@@ -183,10 +196,10 @@ public sealed class SimpleIconsWriteRunner : Abstract.ISimpleIconsWriteRunner
 
             string resourceName = ToResourceName(iconName);
             string path = Path.Combine(resourcesDir, resourceName + ".svg");
-            if (!File.Exists(path))
+            if (!await _fileUtil.Exists(path, cancellationToken))
                 continue;
 
-            string svgContent = await File.ReadAllTextAsync(path, cancellationToken);
+            string svgContent = await _fileUtil.Read(path, log: false, cancellationToken);
             string escaped = EscapeForCSharpString(svgContent);
             sb.Append("            \"").Append(iconName).Append("\" => \"").Append(escaped).AppendLine("\",");
         }
