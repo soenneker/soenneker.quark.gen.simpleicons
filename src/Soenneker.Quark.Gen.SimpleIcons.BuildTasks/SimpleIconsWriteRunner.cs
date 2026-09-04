@@ -14,6 +14,7 @@ using Soenneker.Utils.PooledStringBuilders;
 
 namespace Soenneker.Quark.Gen.SimpleIcons.BuildTasks;
 
+/// <inheritdoc cref="Abstract.ISimpleIconsWriteRunner" />
 public sealed class SimpleIconsWriteRunner : Abstract.ISimpleIconsWriteRunner
 {
     private readonly IDirectoryUtil _directoryUtil;
