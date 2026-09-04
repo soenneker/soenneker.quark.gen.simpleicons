@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -11,12 +10,15 @@ using System.Threading.Tasks;
 using Soenneker.Utils.Directory.Abstract;
 using Soenneker.Utils.File.Abstract;
 using Soenneker.Utils.PooledStringBuilders;
+using Soenneker.Hashing.Sha256;
 
 namespace Soenneker.Quark.Gen.SimpleIcons.BuildTasks;
 
 /// <inheritdoc cref="Abstract.ISimpleIconsWriteRunner" />
 public sealed class SimpleIconsWriteRunner : Abstract.ISimpleIconsWriteRunner
 {
+    private static readonly Sha256HashingUtil _sha256 = new();
+
     private readonly IDirectoryUtil _directoryUtil;
     private readonly IFileUtil _fileUtil;
 
@@ -114,7 +116,7 @@ public sealed class SimpleIconsWriteRunner : Abstract.ISimpleIconsWriteRunner
         entries.Sort(StringComparer.Ordinal);
 
         string manifest = string.Join('\n', entries);
-        byte[] bytes = SHA256.HashData(Encoding.UTF8.GetBytes(manifest));
+        byte[] bytes = _sha256.Hash(Encoding.UTF8.GetBytes(manifest));
         return Convert.ToHexString(bytes);
     }
 
