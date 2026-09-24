@@ -1,3 +1,4 @@
+using Soenneker.Quark.Gen.SimpleIcons.BuildTasks.Abstract;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
@@ -26,12 +27,22 @@ public sealed class Program
 
         try
         {
-            await CreateHostBuilder(args).RunConsoleAsync(_cts.Token);
+            var services = new ServiceCollection();
+            services.AddLogging(logging => logging.AddConsole());
+            Startup.ConfigureServices(services);
+
+            await using ServiceProvider provider = services.BuildServiceProvider();
+            await using AsyncServiceScope scope = provider.CreateAsyncScope();
+            Environment.ExitCode = await scope.ServiceProvider.GetRequiredService<ISimpleIconsWriteRunner>().Run(args, _cts.Token);
+        }
+        catch (OperationCanceledException) when (_cts.IsCancellationRequested)
+        {
+            Environment.ExitCode = 130;
         }
         catch (Exception e)
         {
             Console.Error.WriteLine($"Stopped program because of exception: {e}");
-            throw;
+            Environment.ExitCode = 1;
         }
         finally
         {

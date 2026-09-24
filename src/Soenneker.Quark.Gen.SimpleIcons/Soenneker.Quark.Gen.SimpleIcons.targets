@@ -5,6 +5,7 @@
     </Target>
 
     <PropertyGroup>
+        <_SimpleIconsTargetsPath>$(MSBuildThisFileFullPath)</_SimpleIconsTargetsPath>
         <SimpleIconsGeneratorBuildEnabled Condition="'$(SimpleIconsGeneratorBuildEnabled)'==''">true</SimpleIconsGeneratorBuildEnabled>
         <SimpleIconsIncludeSvgProvider Condition="'$(SimpleIconsIncludeSvgProvider)'==''">true</SimpleIconsIncludeSvgProvider>
         <SimpleIconsIncludeServiceCollectionExtensions Condition="'$(SimpleIconsIncludeServiceCollectionExtensions)'==''">true</SimpleIconsIncludeServiceCollectionExtensions>
@@ -17,7 +18,7 @@
                                      Exclude="$(_SimpleIconsProjectDir)\bin\**;$(_SimpleIconsProjectDir)\obj\**;$(_SimpleIconsProjectDir)\node_modules\**" />
     </ItemGroup>
 
-    <Target Name="CopySimpleIconsToBuildResources" BeforeTargets="ResolveSimpleIconsBuildTasksPath" Condition="'$(DesignTimeBuild)'!='true'">
+    <Target Name="ResolveSimpleIconsResources" BeforeTargets="ResolveSimpleIconsBuildTasksPath" Condition="'$(DesignTimeBuild)'!='true'">
         <ItemGroup>
             <_SimpleIconsPkgRef Include="@(PackageReference)" Condition="'%(Identity)' == 'Soenneker.SimpleIcons.Icons'" />
         </ItemGroup>
@@ -27,13 +28,7 @@
             <_SimpleIconsPackagesRoot Condition="'$(_SimpleIconsPackagesRoot)' == '' and '$(NuGetPackageRoot)' != ''">$(NuGetPackageRoot)</_SimpleIconsPackagesRoot>
             <_SimpleIconsPackageResources Condition="'$(_SimpleIconsPackagesRoot)' != '' and '$(_SimpleIconsVersion)' != ''">$([System.IO.Path]::Combine('$(_SimpleIconsPackagesRoot)', 'soenneker.simpleicons.icons', '$(_SimpleIconsVersion)', 'contentFiles', 'any', 'any', 'Resources', 'SimpleIcons'))</_SimpleIconsPackageResources>
             <_SimpleIconsResourcesOutputDir>$([System.IO.Path]::Combine('$(IntermediateOutputPath)', 'SimpleIconsResources'))</_SimpleIconsResourcesOutputDir>
-            <_SimpleIconsPackageResourcesGlob>$(_SimpleIconsPackageResources)/*.svg</_SimpleIconsPackageResourcesGlob>
         </PropertyGroup>
-        <ItemGroup Condition="Exists('$(_SimpleIconsPackageResources)')">
-            <SimpleIconSvgFiles Include="$(_SimpleIconsPackageResourcesGlob)" />
-        </ItemGroup>
-        <MakeDir Directories="$(_SimpleIconsResourcesOutputDir)" Condition="Exists('$(_SimpleIconsPackageResources)')" />
-        <Copy SourceFiles="@(SimpleIconSvgFiles)" DestinationFolder="$(_SimpleIconsResourcesOutputDir)" SkipUnchangedFiles="true" Condition="Exists('$(_SimpleIconsPackageResources)')" />
     </Target>
 
     <Target Name="ResolveSimpleIconsBuildTasksPath" BeforeTargets="RunSimpleIconsGeneratorBuildTasks;IncludeGeneratedSimpleIconsSources;IncludeGeneratedSimpleIconsSourcesDesignTime">
@@ -43,6 +38,7 @@
             <SimpleIconsServiceCollectionExtensionsOutput Condition="'$(SimpleIconsServiceCollectionExtensionsOutput)' == ''">$([System.IO.Path]::Combine($([System.IO.Path]::GetDirectoryName('$(SimpleIconsSvgMapOutput)')), 'SimpleIconServiceCollectionExtensions.g.cs'))</SimpleIconsServiceCollectionExtensionsOutput>
             <_SimpleIconsOutputArg> --output &quot;$(SimpleIconsSvgMapOutput)&quot;</_SimpleIconsOutputArg>
             <_SimpleIconsResourcesArg Condition="'$(SimpleIconsResourcesPath)' != ''"> --resourcesPath &quot;$(SimpleIconsResourcesPath)&quot;</_SimpleIconsResourcesArg>
+            <_SimpleIconsResourcesArg Condition="'$(_SimpleIconsResourcesArg)' == '' and Exists('$(_SimpleIconsPackageResources)')"> --resourcesPath &quot;$(_SimpleIconsPackageResources)&quot;</_SimpleIconsResourcesArg>
             <_SimpleIconsResourcesArg Condition="'$(_SimpleIconsResourcesArg)' == ''"> --resourcesPath &quot;$([System.IO.Path]::Combine('$(IntermediateOutputPath)', 'SimpleIconsResources'))&quot;</_SimpleIconsResourcesArg>
         </PropertyGroup>
         <PropertyGroup Condition="'$(SimpleIconsBuildTasksDllPath)' == ''">
@@ -59,10 +55,31 @@
         </PropertyGroup>
     </Target>
 
+
+    <Target Name="PrepareSimpleIconsGeneratorInputs" DependsOnTargets="ResolveSimpleIconsBuildTasksPath"
+            Condition="'$(DesignTimeBuild)'!='true' and '$(IsCrossTargetingBuild)'!='true' and '$(SimpleIconsGeneratorBuildEnabled)'=='true'">
+        <PropertyGroup>
+            <_SimpleIconsInputManifest>$(IntermediateOutputPath)simpleicons-generator.inputs</_SimpleIconsInputManifest>
+            <_SimpleIconsSuccessStamp>$(IntermediateOutputPath)simpleicons-generator.stamp</_SimpleIconsSuccessStamp>
+            <_SimpleIconsResourceRoot>$(_SimpleIconsPackageResources)</_SimpleIconsResourceRoot>
+            <_SimpleIconsResourceRoot Condition="'$(_SimpleIconsResourceRoot)'==''">$(IntermediateOutputPath)SimpleIconsResources</_SimpleIconsResourceRoot>
+            <_SimpleIconsResourceRoot Condition="'$(SimpleIconsResourcesPath)'!=''">$(SimpleIconsResourcesPath)</_SimpleIconsResourceRoot>
+        </PropertyGroup>
+        <ItemGroup>
+            <_SimpleIconsTrackedInputs Include="@(_SimpleIconsGeneratorInputs);$(_SimpleIconsResourceRoot)/*.svg;$(_SimpleIconsTargetsPath);$(MSBuildProjectFullPath);$(MSBuildAllProjects);$(ProjectAssetsFile);$(SimpleIconsBuildTasksDllPath)" />
+        </ItemGroup>
+        <MakeDir Directories="$(IntermediateOutputPath)" />
+        <WriteLinesToFile File="$(_SimpleIconsInputManifest)"
+                          Lines="@(_SimpleIconsTrackedInputs->'%(FullPath)|%(ModifiedTime)');$(_SimpleIconsOutputArg);$(_SimpleIconsResourcesArg)"
+                          Overwrite="true" WriteOnlyWhenDifferent="true" />
+        <Delete Files="$(_SimpleIconsSuccessStamp)" Condition="!Exists('$(SimpleIconsSvgMapOutput)') or !Exists('$(SimpleIconsSvgProviderOutput)') or !Exists('$(SimpleIconsServiceCollectionExtensionsOutput)')" />
+    </Target>
+
     <Target Name="RunSimpleIconsGeneratorBuildTasks"
+            DependsOnTargets="PrepareSimpleIconsGeneratorInputs"
             BeforeTargets="XamlPreCompile;BeforeCompile;CoreCompile"
-            Inputs="@(_SimpleIconsGeneratorInputs);$(MSBuildProjectFullPath);$(ProjectAssetsFile);$(SimpleIconsBuildTasksDllPath)"
-            Outputs="$(SimpleIconsSvgMapOutput);$(SimpleIconsSvgProviderOutput);$(SimpleIconsServiceCollectionExtensionsOutput)"
+            Inputs="$(_SimpleIconsInputManifest)"
+            Outputs="$(_SimpleIconsSuccessStamp)"
             Condition="'$(DesignTimeBuild)'!='true' and '$(IsCrossTargetingBuild)'!='true' and '$(SimpleIconsGeneratorBuildEnabled)'=='true'">
 
         <Message Importance="high" Text="Running Soenneker.Quark.Gen.SimpleIcons BuildTasks: projectDir=$(_SimpleIconsProjectDir)" />
@@ -79,6 +96,7 @@
               StandardOutputImportance="high"
               StandardErrorImportance="high"
               Command='dotnet exec &quot;$(SimpleIconsBuildTasksDllPath)&quot; --projectDir &quot;$(_SimpleIconsProjectDir)&quot;$(_SimpleIconsOutputArg)$(_SimpleIconsResourcesArg)' />
+        <Touch Files="$(_SimpleIconsSuccessStamp)" AlwaysCreate="true" />
     </Target>
 
     <Target Name="IncludeGeneratedSimpleIconsSources"
