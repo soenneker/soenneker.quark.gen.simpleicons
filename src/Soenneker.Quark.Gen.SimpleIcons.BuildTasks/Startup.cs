@@ -19,6 +19,5 @@ public static class Startup
         services.AddDirectoryUtilAsSingleton()
                 .AddFileUtilAsSingleton()
                 .AddSingleton<ISimpleIconsWriteRunner, SimpleIconsWriteRunner>();
-        services.AddHostedService<ConsoleHostedService>();
     }
 }

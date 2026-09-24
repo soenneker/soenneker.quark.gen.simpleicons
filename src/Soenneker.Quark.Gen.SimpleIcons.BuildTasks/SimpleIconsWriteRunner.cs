@@ -70,7 +70,7 @@ public sealed class SimpleIconsWriteRunner : Abstract.ISimpleIconsWriteRunner
         string providerPath = Path.Combine(outputRoot, "SimpleIconSvgProvider.g.cs");
         string extensionsPath = Path.Combine(outputRoot, "SimpleIconServiceCollectionExtensions.g.cs");
         string hashPath = Path.Combine(outputRoot, "simpleicons-generator.inputs.hash");
-        string inputHash = ComputeInputHash(projectDir, resourcesDir);
+        string inputHash = await ComputeInputHash(projectDir, resourcesDir, cancellationToken);
 
         if (await CanSkipGeneration(inputHash, hashPath, outputPath, providerPath, extensionsPath, cancellationToken))
             return 0;
@@ -102,7 +102,7 @@ public sealed class SimpleIconsWriteRunner : Abstract.ISimpleIconsWriteRunner
         return string.Equals(previousHash, inputHash, StringComparison.Ordinal);
     }
 
-    private static string ComputeInputHash(string projectDir, string resourcesDir)
+    private async ValueTask<string> ComputeInputHash(string projectDir, string resourcesDir, CancellationToken cancellationToken)
     {
         var entries = new List<string>();
         AddFileMetadataEntries(entries, projectDir, ".cs");
@@ -110,7 +110,7 @@ public sealed class SimpleIconsWriteRunner : Abstract.ISimpleIconsWriteRunner
         AddFileMetadataEntries(entries, resourcesDir, ".svg");
 
         string assemblyLocation = typeof(SimpleIconsWriteRunner).Assembly.Location;
-        if (!string.IsNullOrWhiteSpace(assemblyLocation) && File.Exists(assemblyLocation))
+        if (!string.IsNullOrWhiteSpace(assemblyLocation) && await _fileUtil.Exists(assemblyLocation, cancellationToken))
             entries.Add(BuildMetadataEntry("buildtasks", assemblyLocation, "buildtasks"));
 
         entries.Sort(StringComparer.Ordinal);

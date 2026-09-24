@@ -1,5 +1,4 @@
 using Soenneker.Quark.Gen.SimpleIcons.BuildTasks.Abstract;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using System;
@@ -49,26 +48,6 @@ public sealed class Program
             Console.CancelKeyPress -= OnCancelKeyPress;
             _cts.Dispose();
         }
-    }
-
-    /// <summary>
-    /// Creates host builder.
-    /// </summary>
-    /// <param name="args">Command-line arguments passed to the application.</param>
-    /// <returns>A host builder configured with the application services and settings.</returns>
-    public static IHostBuilder CreateHostBuilder(string[] args)
-    {
-        return Host.CreateDefaultBuilder(args)
-            .ConfigureLogging(logging =>
-            {
-                logging.ClearProviders();
-                logging.AddConsole();
-            })
-            .ConfigureServices((_, services) =>
-            {
-                services.AddSingleton(new BuildTasksCommandLineArgs(args));
-                Startup.ConfigureServices(services);
-            });
     }
 
     private static void OnCancelKeyPress(object? sender, ConsoleCancelEventArgs eventArgs)
