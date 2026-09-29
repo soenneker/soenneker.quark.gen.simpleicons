@@ -109,7 +109,9 @@ public sealed class SimpleIconsWriteRunner : Abstract.ISimpleIconsWriteRunner
         AddFileMetadataEntries(entries, projectDir, ".razor");
         AddFileMetadataEntries(entries, resourcesDir, ".svg");
 
-        string assemblyLocation = typeof(SimpleIconsWriteRunner).Assembly.Location;
+        string assemblyLocation = System.IO.Path.Combine(AppContext.BaseDirectory, typeof(SimpleIconsWriteRunner).Assembly.GetName().Name + ".dll");
+        if (!System.IO.File.Exists(assemblyLocation))
+            assemblyLocation = Environment.ProcessPath ?? string.Empty;
         if (!string.IsNullOrWhiteSpace(assemblyLocation) && await _fileUtil.Exists(assemblyLocation, cancellationToken))
             entries.Add(BuildMetadataEntry("buildtasks", assemblyLocation, "buildtasks"));
 
