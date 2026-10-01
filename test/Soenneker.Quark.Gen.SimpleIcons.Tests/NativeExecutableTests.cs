@@ -13,7 +13,7 @@ public sealed class NativeExecutableTests
     {
         // Native matrix jobs supply the published executable; ordinary managed test runs do not.
         string? executable = Environment.GetEnvironmentVariable("QUARK_NATIVE_TOOL");
-        if (string.IsNullOrEmpty(executable)) return;
+        if (string.IsNullOrEmpty(executable)) { TUnit.Core.Skip.Test("Set QUARK_NATIVE_TOOL to run native integration tests."); return; }
         string directory = Path.Combine(Path.GetTempPath(), "quark native " + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
         try
