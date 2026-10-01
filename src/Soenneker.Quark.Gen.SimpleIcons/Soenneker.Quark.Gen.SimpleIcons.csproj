@@ -10,6 +10,7 @@
         <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
         <IncludeBuildOutput>false</IncludeBuildOutput>
         <DevelopmentDependency>true</DevelopmentDependency>
+        <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);AddBuildTasksOutputToPackage</TargetsForTfmSpecificContentInPackage>
     </PropertyGroup>
 
     <PropertyGroup>
@@ -37,9 +38,6 @@
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageIcon>icon.png</PackageIcon>
         <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
-        <_SimpleIconsBuildTasksProjectPath>$([System.IO.Path]::GetFullPath($([System.IO.Path]::Combine('$(MSBuildProjectDirectory)', '..', 'Soenneker.Quark.Gen.SimpleIcons.BuildTasks', 'Soenneker.Quark.Gen.SimpleIcons.BuildTasks.csproj'))))</_SimpleIconsBuildTasksProjectPath>
-        <_SimpleIconsBuildTasksOutputDir>$([System.IO.Path]::GetFullPath($([System.IO.Path]::Combine('$(MSBuildProjectDirectory)', '..', 'Soenneker.Quark.Gen.SimpleIcons.BuildTasks', 'bin', '$(Configuration)'))))</_SimpleIconsBuildTasksOutputDir>
-        <_SimpleIconsBuildTasksDllPath>$([System.IO.Path]::Combine('$(_SimpleIconsBuildTasksOutputDir)', 'Soenneker.Quark.Gen.SimpleIcons.BuildTasks.dll'))</_SimpleIconsBuildTasksDllPath>
     </PropertyGroup>
 
     <ItemGroup>
@@ -51,7 +49,6 @@
     <ItemGroup>
         <None Include="Soenneker.Quark.Gen.SimpleIcons.targets" Pack="true" PackagePath="build/" />
         <None Include="Soenneker.Quark.Gen.SimpleIcons.targets" Pack="true" PackagePath="buildTransitive/" />
-        <None Include="$([MSBuild]::EnsureTrailingSlash('$(_SimpleIconsBuildTasksOutputDir)'))**/*.*" Pack="true" PackagePath="buildTransitive/%(RecursiveDir)" />
     </ItemGroup>
 
     <ItemGroup>
@@ -63,13 +60,34 @@
         <PackageReference Include="Soenneker.Quark.Gen.SimpleIcons.Abstractions" Version="4.0.18" />
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" PrivateAssets="all" />
     </ItemGroup>
+    <PropertyGroup>
+        <SimpleIconsNativeRuntimeIdentifier Condition="'$(SimpleIconsNativeRuntimeIdentifier)' == ''">$(NETCoreSdkRuntimeIdentifier)</SimpleIconsNativeRuntimeIdentifier>
+        <SimpleIconsNativeArtifactsDir Condition="'$(SimpleIconsNativeArtifactsDir)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/../../artifacts/native'))</SimpleIconsNativeArtifactsDir>
+        <_SimpleIconsNativeExecutable>Soenneker.Quark.Gen.SimpleIcons.BuildTasks</_SimpleIconsNativeExecutable>
+        <_SimpleIconsNativeExecutable Condition="$([System.String]::Copy('$(SimpleIconsNativeRuntimeIdentifier)').StartsWith('win-'))">$(_SimpleIconsNativeExecutable).exe</_SimpleIconsNativeExecutable>
+    </PropertyGroup>
 
-    <Target Name="BuildBuildTasksToolOnBuild" BeforeTargets="Build" Condition="!Exists('$(_SimpleIconsBuildTasksDllPath)')">
-        <MSBuild Projects="$(_SimpleIconsBuildTasksProjectPath)" Targets="Build" Properties="Configuration=$(Configuration)" BuildInParallel="true" />
+    <Target Name="BuildBuildTasksTool" BeforeTargets="Build"
+            Condition="'$(SimpleIconsUsePrebuiltNativeTools)' != 'true'"
+            Inputs="@(SimpleIconsNativeSource);../Soenneker.Quark.Gen.SimpleIcons.BuildTasks/obj/project.assets.json"
+            Outputs="$(SimpleIconsNativeArtifactsDir)/$(SimpleIconsNativeRuntimeIdentifier)/$(_SimpleIconsNativeExecutable)">
+        <Exec Command="dotnet publish &quot;$(MSBuildProjectDirectory)/../Soenneker.Quark.Gen.SimpleIcons.BuildTasks/Soenneker.Quark.Gen.SimpleIcons.BuildTasks.csproj&quot; --configuration Release --runtime $(SimpleIconsNativeRuntimeIdentifier) --output &quot;$(SimpleIconsNativeArtifactsDir)/$(SimpleIconsNativeRuntimeIdentifier)&quot;" />
     </Target>
 
-    <Target Name="BuildBuildTasksTool" BeforeTargets="Pack" Condition="'$(IsPackable)' == 'true'">
-        <MSBuild Projects="$(_SimpleIconsBuildTasksProjectPath)" Targets="Build" Properties="Configuration=$(Configuration);NoBuild=false" BuildInParallel="true" />
-        <Error Condition="!Exists('$(_SimpleIconsBuildTasksDllPath)')" Text="BuildTasks output missing. Aborting pack to avoid publishing a broken package." />
+    <ItemGroup>
+        <SimpleIconsNativeSource Include="../Soenneker.Quark.Gen.SimpleIcons.BuildTasks/**/*.cs;../Soenneker.Quark.Gen.SimpleIcons.BuildTasks/*.csproj"
+                             Exclude="../Soenneker.Quark.Gen.SimpleIcons.BuildTasks/bin/**;../Soenneker.Quark.Gen.SimpleIcons.BuildTasks/obj/**" />
+    </ItemGroup>
+
+    <Target Name="AddBuildTasksOutputToPackage" DependsOnTargets="BuildBuildTasksTool">
+        <ItemGroup>
+            <_SimpleIconsRequiredRuntime Include="win-x64;win-arm64;linux-x64;linux-arm64;osx-x64;osx-arm64" Condition="'$(SimpleIconsUsePrebuiltNativeTools)' == 'true'" />
+            <_SimpleIconsNativeFile Include="$(SimpleIconsNativeArtifactsDir)/**/*"
+                                Exclude="$(SimpleIconsNativeArtifactsDir)/**/*.pdb;$(SimpleIconsNativeArtifactsDir)/**/*.dbg;$(SimpleIconsNativeArtifactsDir)/**/*.dSYM/**" />
+            <TfmSpecificPackageFile Include="@(_SimpleIconsNativeFile)" PackagePath="tools/native/" />
+        </ItemGroup>
+        <Error Condition="'@(_SimpleIconsRequiredRuntime)' != '' and !Exists('$(SimpleIconsNativeArtifactsDir)/%(_SimpleIconsRequiredRuntime.Identity)/Soenneker.Quark.Gen.SimpleIcons.BuildTasks') and !Exists('$(SimpleIconsNativeArtifactsDir)/%(_SimpleIconsRequiredRuntime.Identity)/Soenneker.Quark.Gen.SimpleIcons.BuildTasks.exe')"
+               Text="Missing native simpleicons tool for %(_SimpleIconsRequiredRuntime.Identity)." />
+        <Error Condition="'@(_SimpleIconsNativeFile)' == ''" Text="Native simpleicons tools are missing. Publish BuildTasks before packing." />
     </Target>
 </Project>

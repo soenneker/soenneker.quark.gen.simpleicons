@@ -5,6 +5,15 @@
     </Target>
 
     <PropertyGroup>
+        <!-- Select the SDK host rather than the application's RuntimeIdentifier (for example browser-wasm). -->
+        <SimpleIconsToolRuntimeIdentifier Condition="'$(SimpleIconsToolRuntimeIdentifier)' == ''">$(NETCoreSdkRuntimeIdentifier)</SimpleIconsToolRuntimeIdentifier>
+        <_SimpleIconsExecutableName>Soenneker.Quark.Gen.SimpleIcons.BuildTasks</_SimpleIconsExecutableName>
+        <_SimpleIconsExecutableName Condition="$([System.String]::Copy('$(SimpleIconsToolRuntimeIdentifier)').StartsWith('win-'))">$(_SimpleIconsExecutableName).exe</_SimpleIconsExecutableName>
+        <_SimpleIconsNativePackagePath>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../tools/native/$(SimpleIconsToolRuntimeIdentifier)/$(_SimpleIconsExecutableName)'))</_SimpleIconsNativePackagePath>
+        <_SimpleIconsNativeProjectPath>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../../artifacts/native/$(SimpleIconsToolRuntimeIdentifier)/$(_SimpleIconsExecutableName)'))</_SimpleIconsNativeProjectPath>
+        <SimpleIconsBuildTasksExecutablePath Condition="'$(SimpleIconsBuildTasksExecutablePath)' == '' and Exists('$(_SimpleIconsNativePackagePath)')">$(_SimpleIconsNativePackagePath)</SimpleIconsBuildTasksExecutablePath>
+        <SimpleIconsBuildTasksExecutablePath Condition="'$(SimpleIconsBuildTasksExecutablePath)' == ''">$(_SimpleIconsNativeProjectPath)</SimpleIconsBuildTasksExecutablePath>
+
         <_SimpleIconsTargetsPath>$(MSBuildThisFileFullPath)</_SimpleIconsTargetsPath>
         <SimpleIconsGeneratorBuildEnabled Condition="'$(SimpleIconsGeneratorBuildEnabled)'==''">true</SimpleIconsGeneratorBuildEnabled>
         <SimpleIconsIncludeSvgProvider Condition="'$(SimpleIconsIncludeSvgProvider)'==''">true</SimpleIconsIncludeSvgProvider>
@@ -41,18 +50,6 @@
             <_SimpleIconsResourcesArg Condition="'$(_SimpleIconsResourcesArg)' == '' and Exists('$(_SimpleIconsPackageResources)')"> --resourcesPath &quot;$(_SimpleIconsPackageResources)&quot;</_SimpleIconsResourcesArg>
             <_SimpleIconsResourcesArg Condition="'$(_SimpleIconsResourcesArg)' == ''"> --resourcesPath &quot;$([System.IO.Path]::Combine('$(IntermediateOutputPath)', 'SimpleIconsResources'))&quot;</_SimpleIconsResourcesArg>
         </PropertyGroup>
-        <PropertyGroup Condition="'$(SimpleIconsBuildTasksDllPath)' == ''">
-            <_SimpleIconsBuildTasksCandidateFromPackage>$([System.IO.Path]::Combine('$(MSBuildThisFileDirectory)', 'Soenneker.Quark.Gen.SimpleIcons.BuildTasks.dll'))</_SimpleIconsBuildTasksCandidateFromPackage>
-            <_SimpleIconsBuildTasksCandidateFromBuildTransitive>$([System.IO.Path]::GetFullPath($([System.IO.Path]::Combine('$(MSBuildThisFileDirectory)', '..', 'buildTransitive', 'Soenneker.Quark.Gen.SimpleIcons.BuildTasks.dll'))))</_SimpleIconsBuildTasksCandidateFromBuildTransitive>
-            <_SimpleIconsBuildTasksCandidateFromBuildTransitiveRelease>$([System.IO.Path]::GetFullPath($([System.IO.Path]::Combine('$(MSBuildThisFileDirectory)', '..', 'buildTransitive', 'Release', 'Soenneker.Quark.Gen.SimpleIcons.BuildTasks.dll'))))</_SimpleIconsBuildTasksCandidateFromBuildTransitiveRelease>
-            <_SimpleIconsBuildTasksCandidateFromBuildTransitiveDebug>$([System.IO.Path]::GetFullPath($([System.IO.Path]::Combine('$(MSBuildThisFileDirectory)', '..', 'buildTransitive', 'Debug', 'Soenneker.Quark.Gen.SimpleIcons.BuildTasks.dll'))))</_SimpleIconsBuildTasksCandidateFromBuildTransitiveDebug>
-            <_SimpleIconsBuildTasksCandidateFromProject>$([System.IO.Path]::GetFullPath($([System.IO.Path]::Combine('$(MSBuildThisFileDirectory)', '..', 'Soenneker.Quark.Gen.SimpleIcons.BuildTasks', 'bin', '$(Configuration)', 'Soenneker.Quark.Gen.SimpleIcons.BuildTasks.dll'))))</_SimpleIconsBuildTasksCandidateFromProject>
-            <SimpleIconsBuildTasksDllPath Condition="Exists('$(_SimpleIconsBuildTasksCandidateFromPackage)')">$(_SimpleIconsBuildTasksCandidateFromPackage)</SimpleIconsBuildTasksDllPath>
-            <SimpleIconsBuildTasksDllPath Condition="'$(SimpleIconsBuildTasksDllPath)' == '' and Exists('$(_SimpleIconsBuildTasksCandidateFromBuildTransitive)')">$(_SimpleIconsBuildTasksCandidateFromBuildTransitive)</SimpleIconsBuildTasksDllPath>
-            <SimpleIconsBuildTasksDllPath Condition="'$(SimpleIconsBuildTasksDllPath)' == '' and Exists('$(_SimpleIconsBuildTasksCandidateFromBuildTransitiveRelease)')">$(_SimpleIconsBuildTasksCandidateFromBuildTransitiveRelease)</SimpleIconsBuildTasksDllPath>
-            <SimpleIconsBuildTasksDllPath Condition="'$(SimpleIconsBuildTasksDllPath)' == '' and Exists('$(_SimpleIconsBuildTasksCandidateFromBuildTransitiveDebug)')">$(_SimpleIconsBuildTasksCandidateFromBuildTransitiveDebug)</SimpleIconsBuildTasksDllPath>
-            <SimpleIconsBuildTasksDllPath Condition="'$(SimpleIconsBuildTasksDllPath)' == '' and Exists('$(_SimpleIconsBuildTasksCandidateFromProject)')">$(_SimpleIconsBuildTasksCandidateFromProject)</SimpleIconsBuildTasksDllPath>
-        </PropertyGroup>
     </Target>
 
 
@@ -66,7 +63,7 @@
             <_SimpleIconsResourceRoot Condition="'$(SimpleIconsResourcesPath)'!=''">$(SimpleIconsResourcesPath)</_SimpleIconsResourceRoot>
         </PropertyGroup>
         <ItemGroup>
-            <_SimpleIconsTrackedInputs Include="@(_SimpleIconsGeneratorInputs);$(_SimpleIconsResourceRoot)/*.svg;$(_SimpleIconsTargetsPath);$(MSBuildProjectFullPath);$(MSBuildAllProjects);$(ProjectAssetsFile);$(SimpleIconsBuildTasksDllPath)" />
+            <_SimpleIconsTrackedInputs Include="@(_SimpleIconsGeneratorInputs);$(_SimpleIconsResourceRoot)/*.svg;$(_SimpleIconsTargetsPath);$(MSBuildProjectFullPath);$(MSBuildAllProjects);$(ProjectAssetsFile);$(SimpleIconsBuildTasksExecutablePath)" />
         </ItemGroup>
         <MakeDir Directories="$(IntermediateOutputPath)" />
         <WriteLinesToFile File="$(_SimpleIconsInputManifest)"
@@ -85,17 +82,19 @@
         <Message Importance="high" Text="Running Soenneker.Quark.Gen.SimpleIcons BuildTasks: projectDir=$(_SimpleIconsProjectDir)" />
         <Error Condition="'$(_SimpleIconsProjectDir)' == ''"
                Text="Soenneker.Quark.Gen.SimpleIcons: project directory could not be resolved. Set SimpleIconsProjectDir or build a project that has a valid project directory." />
-        <Error Condition="'$(SimpleIconsBuildTasksDllPath)'==''"
-               Text="SimpleIconsBuildTasksDllPath was not resolved. MSBuildThisFileDirectory=$(MSBuildThisFileDirectory)" />
-        <Error Condition="!Exists('$(SimpleIconsBuildTasksDllPath)')"
-               Text="Simple Icons BuildTasks DLL not found at '$(SimpleIconsBuildTasksDllPath)'." />
+        <Error Condition="'$(SimpleIconsBuildTasksExecutablePath)'==''"
+               Text="SimpleIconsBuildTasksExecutablePath was not resolved. MSBuildThisFileDirectory=$(MSBuildThisFileDirectory)" />
+        <Error Condition="!Exists('$(SimpleIconsBuildTasksExecutablePath)')"
+               Text="Simple Icons native BuildTasks executable not found at '$(SimpleIconsBuildTasksExecutablePath)'." />
 
+        <!-- NuGet extraction does not preserve Unix execute permissions. -->
+        <Exec Condition="'$(OS)' != 'Windows_NT'" Command="chmod +x &quot;$(SimpleIconsBuildTasksExecutablePath)&quot;" />
         <Exec WorkingDirectory="$(_SimpleIconsProjectDir)"
               IgnoreExitCode="false"
               ConsoleToMSBuild="true"
               StandardOutputImportance="high"
               StandardErrorImportance="high"
-              Command='dotnet exec &quot;$(SimpleIconsBuildTasksDllPath)&quot; --projectDir &quot;$(_SimpleIconsProjectDir)&quot;$(_SimpleIconsOutputArg)$(_SimpleIconsResourcesArg)' />
+              Command='&quot;$(SimpleIconsBuildTasksExecutablePath)&quot; --projectDir &quot;$(_SimpleIconsProjectDir)&quot;$(_SimpleIconsOutputArg)$(_SimpleIconsResourcesArg)' />
         <Touch Files="$(_SimpleIconsSuccessStamp)" AlwaysCreate="true" />
     </Target>
 
