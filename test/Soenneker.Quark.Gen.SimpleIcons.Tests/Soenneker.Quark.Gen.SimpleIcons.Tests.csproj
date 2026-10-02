@@ -16,4 +16,13 @@
         <ProjectReference Include="..\..\src\Soenneker.Quark.Gen.SimpleIcons\Soenneker.Quark.Gen.SimpleIcons.csproj" ReferenceOutputAssembly="false" OutputItemType="Analyzer" />
     </ItemGroup>
 
+    <ItemGroup>
+        <Compile Include="../../src/Soenneker.Quark.Gen.SimpleIcons.BuildTasks/ProjectFileEnumerator.cs" Link="ProjectFileEnumerator.cs" />
+    </ItemGroup>
+    <ItemGroup>
+        <Compile Include="../../src/Soenneker.Quark.Gen.SimpleIcons.BuildTasks/MetadataHash.cs" Link="MetadataHash.cs" />
+    </ItemGroup>
+    <ItemGroup>
+        <Compile Include="../../src/Soenneker.Quark.Gen.SimpleIcons.BuildTasks/IconUsageScanner.cs" Link="IconUsageScanner.cs" />
+    </ItemGroup>
 </Project>
