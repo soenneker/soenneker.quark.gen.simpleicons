@@ -136,4 +136,9 @@
             <Compile Include="$(SimpleIconsServiceCollectionExtensionsOutput)" />
         </ItemGroup>
     </Target>
+    <Target Name="ValidateSoennekerQuarkGenSimpleIconsTargetFramework" BeforeTargets="PrepareForBuild;CoreCompile"
+            Condition="'$(TargetFramework)' != '' and '$(IsCrossTargetingBuild)' != 'true'">
+        <Error Condition="'$(TargetFrameworkIdentifier)' != '.NETCoreApp' or !$([MSBuild]::VersionGreaterThanOrEquals('$(TargetFrameworkVersion)', '10.0'))"
+               Text="Soenneker.Quark.Gen.SimpleIcons requires a consumer targeting .NET 10 or later. Current target: $(TargetFramework)." />
+    </Target>
 </Project>
