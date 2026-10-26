@@ -15,7 +15,7 @@
 
     <PropertyGroup>
         <Description>Build-time source generation for Simple Icons icons in Quark and Razor projects</Description>
-        <Version Condition="'$(BUILD_VERSION)' == ''">4.0.0</Version>
+        <Version Condition="'$(BUILD_VERSION)' == ''">11.0.0</Version>
         <Version Condition="'$(BUILD_VERSION)' != ''">$(BUILD_VERSION)</Version>
         <AssemblyName>Soenneker.Quark.Gen.SimpleIcons</AssemblyName>
         <PackageId>Soenneker.Quark.Gen.SimpleIcons</PackageId>
