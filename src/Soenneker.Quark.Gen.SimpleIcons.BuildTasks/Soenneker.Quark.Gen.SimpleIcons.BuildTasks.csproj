@@ -18,6 +18,6 @@
     <ItemGroup>
         <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="11.0.0" />
         <PackageReference Include="Soenneker.Utils.Directory" Version="11.0.973" />
-        <PackageReference Include="Soenneker.Utils.File" Version="11.0.2334" />
+        <PackageReference Include="Soenneker.Utils.File" Version="11.0.2337" />
     </ItemGroup>
 </Project>
